@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Akshu Racing 3D — Turbo Edition</title>
+<style>
+:root{--glass:rgba(8,15,28,.72);--line:rgba(255,255,255,.24)}*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#7dc8ff;font-family:system-ui,Arial,sans-serif;touch-action:none}
+#game{position:fixed;inset:0}canvas{display:block}
+.panel{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(12px);box-shadow:0 10px 30px #0003;color:#fff}
+#top{position:fixed;top:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 13px;border-radius:17px}
+.brand{font-size:12px;letter-spacing:1.2px;font-weight:1000}.brand span{color:#ffca4b}.stat{font-weight:900;font-size:13px;text-align:right}.stat small{display:block;font-size:9px;letter-spacing:1px;color:#c8d5e7}
+#meter{position:fixed;top:77px;right:15px;width:104px;height:7px;border-radius:10px;background:#ffffff45;overflow:hidden}#meterFill{height:100%;width:0;background:linear-gradient(90deg,#26f2b1,#ffe45c,#ff5c5c)}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(180deg,#05101b20,#05101b72)}
+#card{max-width:390px;width:100%;text-align:center;border-radius:26px;padding:25px 20px}
+.logo{font-size:clamp(26px,7vw,42px);font-weight:1000;font-style:italic;line-height:1;letter-spacing:-1.5px;text-shadow:0 3px 0 #b52828}.logo span{color:#ffcf49}
+.tag{margin:10px 0 18px;color:#d9e7f7;font-size:12px;letter-spacing:2px;font-weight:800}
+#start{border:0;border-radius:14px;padding:14px 26px;background:linear-gradient(135deg,#ffe56b,#ff9c2f);color:#211403;font-weight:1000;font-size:16px;box-shadow:0 5px 0 #9b5013;width:100%}
+.tip{font-size:11px;color:#d6e1ed;line-height:1.7;margin-top:14px}
+#controls{position:fixed;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:end;padding:0 15px;pointer-events:none}
+.group{display:flex;gap:9px;pointer-events:auto}.btn{width:61px;height:61px;border:1px solid #ffffff70;border-radius:18px;background:linear-gradient(145deg,#182a42dd,#070d19dd);color:white;font-size:22px;font-weight:1000;box-shadow:0 5px 0 #0006;touch-action:none;user-select:none}
+.btn:active,.btn.down{background:linear-gradient(145deg,#16c79a,#087c73);transform:translateY(2px)}
+.btn.pedal{width:70px;height:66px;font-size:12px;letter-spacing:.5px}.btn.gas{background:linear-gradient(145deg,#ffda61,#ff8d28);color:#251704;border-color:#ffe8a5}
+#toast{position:fixed;left:50%;top:26%;transform:translateX(-50%);color:white;font-size:12px;font-weight:900;letter-spacing:2px;text-shadow:0 2px 8px #000;opacity:0;transition:opacity .2s;pointer-events:none}
+@media(min-width:800px){#controls{padding:0 7vw}.btn{width:70px;height:70px}}
+</style></head><body>
+<div id="game"></div>
+<div id="top" class="panel"><div class="brand">AKSHU <span>RACING</span><br><small style="font-size:9px;color:#b8c9dc;letter-spacing:2px">TURBO EDITION</small></div><div class="stat"><small>DISTANCE</small><span id="distance">0000</span> <small style="display:inline">M</small></div><div class="stat"><small>SPEED</small><span id="speed">000</span><small style="display:inline"> KM/H</small></div></div>
+<div id="meter"><div id="meterFill"></div></div><div id="toast">NITRO BOOST!</div>
+<div id="overlay"><div id="card" class="panel"><div class="logo">AKSHU <span>RACING</span></div><div class="tag">3D HIGHWAY • TURBO EDITION</div><button id="start">▶ START RACE</button><div class="tip">◀ ▶ STEER &nbsp; • &nbsp; GAS TO ACCELERATE<br>Brake to slow down · Avoid traffic!</div></div></div>
+<div id="controls"><div class="group"><button class="btn" id="left">◀</button><button class="btn" id="right">▶</button></div><div class="group"><button class="btn pedal" id="brake">BRAKE</button><button class="btn pedal gas" id="gas">GAS ▲</button></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{const $=id=>document.getElementById(id);const root=$('game'), overlay=$('overlay'),startBtn=$('start');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x8bd2ff);scene.fog=new THREE.Fog(0x8bd2ff,70,235);
+const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,500);camera.position.set(0,5.1,11);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;root.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xe5f6ff,0x4b6541,2.1));const sun=new THREE.DirectionalLight(0xfff1d2,3.2);sun.position.set(-12,24,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-20;sun.shadow.camera.right=20;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-20;scene.add(sun);
+const mat=(c,r=.65,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const asphalt=mat(0x252b34,.94), grassmat=mat(0x428344), white=mat(0xf5f5f1), yellow=mat(0xffd34f,.4), black=mat(0x10151d,.55), rubber=mat(0x111318,.9), glass=mat(0x72c9e9,.22,.25);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(320,500),grassmat);floor.rotation.x=-Math.PI/2;floor.position.set(0,-.18,-170);scene.add(floor);
+const road=new THREE.Mesh(new THREE.PlaneGeometry(11,500),asphalt);road.rotation.x=-Math.PI/2;road.position.set(0,-.08,-170);scene.add(road);
+for(const x of [-5.45,5.45]){let curb=new THREE.Mesh(new THREE.BoxGeometry(.22,.14,500),mat(0xe8e9ed));curb.position.set(x,-.02,-170);scene.add(curb);let line=new THREE.Mesh(new THREE.BoxGeometry(.07,.025,500),yellow);line.position.set(x*0.985,.06,-170);scene.add(line)}
+const dashes=[];for(let z=-420;z<40;z+=10){let d=new THREE.Mesh(new THREE.BoxGeometry(.12,.035,4.7),white);d.position.set(0,.01,z);scene.add(d);dashes.push(d)}
+// layered mountains on the horizon
+for(let layer=0;layer<2;layer++){for(let i=0;i<18;i++){let h=12+Math.random()*25,w=16+Math.random()*18;let m=new THREE.Mesh(new THREE.ConeGeometry(w,h,5),mat(layer?0x688d9a:0x91b7bf));m.position.set((i-9)*19+(Math.random()*7),h/2-1,-205-layer*35);m.rotation.y=Math.random()*1.5;scene.add(m)}}
+function tree(x,z,scale=1){let g=new THREE.Group();let trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12,.2,1.6,7),mat(0x6f4b2d));trunk.position.y=.8;g.add(trunk);for(let j=0;j<3;j++){let crown=new THREE.Mesh(new THREE.ConeGeometry(1.05-j*.17,1.8,7),mat(j===0?0x1f683a:0x2c8241));crown.position.y=1.65+j*.8;g.add(crown)}g.scale.setScalar(scale);g.position.set(x,0,z);scene.add(g);return g}
+const trees=[];for(let i=0;i<50;i++)for(let s of [-1,1])trees.push(tree(s*(8+Math.random()*8),-i*9-15,.7+Math.random()*.65));
+const roadside=[];for(let i=0;i<22;i++)for(let s of [-1,1]){let g=new THREE.Group();let pole=new THREE.Mesh(new THREE.CylinderGeometry(.06,.09,3.2,8),mat(0x56606b));pole.position.y=1.6;g.add(pole);let board=new THREE.Mesh(new THREE.BoxGeometry(1.25,.65,.12),mat(i%2?0x087d5d:0x1356a4));board.position.y=2.75;g.add(board);let txt=new THREE.Mesh(new THREE.BoxGeometry(.78,.07,.03),white);txt.position.set(0,2.78,.08);g.add(txt);g.position.set(s*7.5,0,-i*22-20);scene.add(g);roadside.push(g)}
+function sportsCar(color,playerCar=false){const g=new THREE.Group();const paint=mat(color,.26,.42),dark=mat(0x151b24,.25,.3),head=mat(0xfff2bd,.2,.1),tail=mat(0xff1b32,.25);
+function box(w,h,d,m,x,y,z,bevel=0){let mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh}
+box(1.68,.38,3.05,paint,0,.62,0);box(1.5,.22,1.15,paint,0,.82,-.8);box(1.2,.56,1.35,glass,0,1.02,-.38);
+box(1.26,.08,.13,dark,0,1.31,-.37);box(1.15,.06,.12,dark,0,.77,.18);
+box(1.78,.15,.25,paint,0,.46,-1.47);box(1.78,.12,.25,dark,0,.44,1.45);
+box(.36,.12,.06,head,-.52,.68,-1.55);box(.36,.12,.06,head,.52,.68,-1.55);
+box(.38,.12,.06,tail,-.52,.68,1.55);box(.38,.12,.06,tail,.52,.68,1.55);
+box(.06,.13,1.35,dark,-.83,.61,0);box(.06,.13,1.35,dark,.83,.61,0);
+for(let x of [-.88,.88])for(let z of [-.98,.98]){let w=new THREE.Mesh(new THREE.CylinderGeometry(.29,.29,.19,20),rubber);w.rotation.z=Math.PI/2;w.position.set(x,.39,z);w.castShadow=true;g.add(w);let hub=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.2,12),mat(0xb9c7d5,.25,.8));hub.rotation.z=Math.PI/2;hub.position.set(x*1.005,.39,z);g.add(hub)}
+if(playerCar){box(1.65,.09,.12,dark,0,1.12,1.18);box(.08,.42,.08,dark,-.57,1.02,1.18);box(.08,.42,.08,dark,.57,1.02,1.18)}
+return g}
+const player=sportsCar(0xe3233a,true);player.position.set(0,0,3);scene.add(player);
+const traffic=[];const palette=[0x1978e6,0xffa928,0xf1f2f4,0x8b5cf6,0x13b89a,0x252b33];
+function spawn(c,z){c.position.set([-3.25,0,3.25][Math.floor(Math.random()*3)],0,z)}
+for(let i=0;i<6;i++){let c=sportsCar(palette[i%palette.length]);scene.add(c);spawn(c,-34-i*43);traffic.push(c)}
+let running=false, speed=0,dist=0, gas=false,brake=false,left=false,right=false,nitro=0,last=performance.now(),shake=0;
+function hold(id,fn){let el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();fn(true);el.classList.add('down');try{el.setPointerCapture(e.pointerId)}catch(_){}});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,()=>{fn(false);el.classList.remove('down')}))}
+hold('left',v=>left=v);hold('right',v=>right=v);hold('gas',v=>gas=v);hold('brake',v=>brake=v);
+const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))e.preventDefault();if(e.key==='Enter'&&!running)start()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function start(){running=true;speed=18;dist=0;player.position.x=0;traffic.forEach((c,i)=>spawn(c,-35-i*43));overlay.style.display='none';last=performance.now()}
+startBtn.addEventListener('click',start);
+function crash(){running=false;overlay.style.display='flex';$('card').innerHTML='<div class="logo">RACE <span>OVER</span></div><div class="tag">DISTANCE: '+Math.floor(dist)+' M</div><button id="again" style="border:0;border-radius:14px;padding:14px 26px;background:linear-gradient(135deg,#ffe56b,#ff9c2f);font-weight:1000;width:100%;font-size:16px">↻ RACE AGAIN</button><div class="tip">Keep an eye on traffic and steer early.</div>';$('again').addEventListener('click',start)}
+function loop(now){requestAnimationFrame(loop);let dt=Math.min((now-last)/1000,.04);last=now;
+if(running){const go=gas||keys.arrowup||keys.w,stop=brake||keys.arrowdown||keys.s;speed=THREE.MathUtils.clamp(speed+(go?24:stop?-40:-5)*dt,0,78);let steer=(right||keys.arrowright||keys.d?1:0)-(left||keys.arrowleft||keys.a?1:0);player.position.x=THREE.MathUtils.clamp(player.position.x+steer*(3.8+speed*.07)*dt,-4.15,4.15);player.rotation.z=THREE.MathUtils.lerp(player.rotation.z,-steer*.09,.12);player.rotation.y=THREE.MathUtils.lerp(player.rotation.y,-steer*.045,.1);const travel=speed*dt*.7;dist+=travel*.5;$('distance').textContent=String(Math.floor(dist)).padStart(4,'0');$('speed').textContent=String(Math.floor(speed*3.2)).padStart(3,'0');$('meterFill').style.width=(speed/78*100)+'%';
+dashes.forEach(d=>{d.position.z+=travel;if(d.position.z>12)d.position.z-=460});trees.forEach(t=>{t.position.z+=travel;if(t.position.z>20)t.position.z-=470});roadside.forEach(t=>{t.position.z+=travel;if(t.position.z>20)t.position.z-=470});
+traffic.forEach(c=>{c.position.z+=travel*(1.15+(78-speed)/100);if(c.position.z>12){spawn(c,-210-Math.random()*65)}if(Math.abs(c.position.z-player.position.z)<2.5&&Math.abs(c.position.x-player.position.x)<1.48){crash()}});
+camera.position.x=THREE.MathUtils.lerp(camera.position.x,player.position.x*.34,.055);camera.position.y=THREE.MathUtils.lerp(camera.position.y,5.0+speed*.008,.04);camera.lookAt(player.position.x*.22,.75,-8);
+}else{camera.lookAt(0,.7,-8)}
+renderer.render(scene,camera)}
+requestAnimationFrame(loop);addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+})();
+</script></body></html>
